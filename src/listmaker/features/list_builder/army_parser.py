@@ -9,6 +9,7 @@ from ...database.models import (
     DatasheetKeywordModel,
     DatasheetModel,
     DatasheetModelStatsModel,
+    DatasheetWargearModel,
 )
 
 
@@ -137,6 +138,11 @@ class ArmyListParser:
         # Get model stats
         model_stats = self._get_model_stats(datasheet.datasheet_id)
         
+        # Get wargear/weapons (pad datasheet_id to match wargear table format)
+        padded_datasheet_id = datasheet.datasheet_id.zfill(9)
+        wargear = self._get_wargear(padded_datasheet_id)
+        weapons = [self._format_weapon(w) for w in wargear]
+        
         # Parse model count from the unit composition
         model_count = self._parse_model_count(unit_data)
         
@@ -184,7 +190,8 @@ class ArmyListParser:
                 "points": unit_data['points'],
                 "is_warlord": unit_data['is_warlord'],
                 "enhancements": unit_data['enhancements'],
-                "wargear": unit_data['wargear']
+                "wargear": unit_data['wargear'],
+                "weapons": weapons
             },
             "models": models
         }
@@ -236,6 +243,53 @@ class ArmyListParser:
             .order_by(DatasheetModelStatsModel.line)
             .all()
         )
+    
+    def _get_wargear(self, datasheet_id: str) -> List[DatasheetWargearModel]:
+        """Get wargear/weapons for a datasheet."""
+        return (
+            self.session.query(DatasheetWargearModel)
+            .filter(DatasheetWargearModel.datasheet_id == datasheet_id)
+            .order_by(DatasheetWargearModel.line, DatasheetWargearModel.line_in_wargear)
+            .all()
+        )
+    
+    def _format_weapon(self, weapon: DatasheetWargearModel) -> Dict:
+        """Format weapon data for output."""
+        # Clean up HTML tags from description
+        description = weapon.description or ""
+        description = re.sub(r'<[^>]+>', '', description)  # Remove HTML tags
+        
+        weapon_data = {
+            "name": weapon.name,
+            "type": weapon.type,
+        }
+        
+        # Add ranged weapon stats
+        if weapon.type == "Ranged":
+            weapon_data.update({
+                "range": weapon.range,
+                "attacks": weapon.attacks,
+                "ballistic_skill": weapon.bs_ws,
+                "strength": weapon.strength,
+                "ap": weapon.ap,
+                "damage": weapon.damage,
+            })
+        # Add melee weapon stats
+        elif weapon.type == "Melee":
+            weapon_data.update({
+                "range": "Melee",
+                "attacks": weapon.attacks,
+                "weapon_skill": weapon.bs_ws,
+                "strength": weapon.strength,
+                "ap": weapon.ap,
+                "damage": weapon.damage,
+            })
+        
+        # Add special rules if present
+        if description:
+            weapon_data["special_rules"] = description
+            
+        return weapon_data
     
     def _parse_model_count(self, unit_data: Dict) -> int:
         """Parse model count from unit data."""

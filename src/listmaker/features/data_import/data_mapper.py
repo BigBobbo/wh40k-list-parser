@@ -9,6 +9,7 @@ from ...database.models import (
     DatasheetKeywordModel,
     DatasheetModel,
     DatasheetModelStatsModel,
+    DatasheetWargearModel,
     FactionModel,
     ModelCostModel,
     UnitCompositionModel,
@@ -137,6 +138,30 @@ class DataMapper:
             stats.append(stat)
         return stats
 
+    def map_wargear(self, df: pd.DataFrame) -> List[DatasheetWargearModel]:
+        """Map wargear dataframe to database models."""
+        wargear_items = []
+        for _, row in df.iterrows():
+            # Ensure datasheet_id is properly formatted with leading zeros
+            datasheet_id = str(row["datasheet_id"]).zfill(9) if len(str(row["datasheet_id"])) < 9 else str(row["datasheet_id"])
+            wargear = DatasheetWargearModel(
+                datasheet_id=datasheet_id,
+                line=int(row["line"]),
+                line_in_wargear=int(row["line_in_wargear"]) if pd.notna(row["line_in_wargear"]) else 1,
+                dice=str(row["dice"]) if pd.notna(row["dice"]) else None,
+                name=str(row["name"]),
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+                range=str(row["range"]) if pd.notna(row["range"]) else None,
+                type=str(row["type"]) if pd.notna(row["type"]) else None,
+                attacks=str(row["A"]) if pd.notna(row["A"]) else None,
+                bs_ws=str(row["BS_WS"]) if pd.notna(row["BS_WS"]) else None,
+                strength=str(row["S"]) if pd.notna(row["S"]) else None,
+                ap=str(row["AP"]) if pd.notna(row["AP"]) else None,
+                damage=str(row["D"]) if pd.notna(row["D"]) else None,
+            )
+            wargear_items.append(wargear)
+        return wargear_items
+
     def save_all(self, data: Dict[str, pd.DataFrame]) -> Dict[str, int]:
         """Save all parsed data to database."""
         counts = {}
@@ -184,6 +209,13 @@ class DataMapper:
             for stat in stats:
                 self.session.merge(stat)
             counts["model_stats"] = len(stats)
+
+        # Save wargear
+        if "wargear" in data:
+            wargear_items = self.map_wargear(data["wargear"])
+            for wargear in wargear_items:
+                self.session.merge(wargear)
+            counts["wargear"] = len(wargear_items)
 
         # Commit all changes
         self.session.commit()

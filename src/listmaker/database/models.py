@@ -193,3 +193,26 @@ class UnitEntryModel(Base):
     # Relationships
     army_list = relationship("ArmyListModel", back_populates="units")
     datasheet = relationship("DatasheetModel", back_populates="unit_entries")
+
+
+class DatasheetWargearModel(Base):
+    """Database model for datasheet wargear/weapons."""
+
+    __tablename__ = "datasheet_wargear"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    line_in_wargear = Column(Integer, primary_key=True, default=1)
+    dice = Column(String(10), nullable=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    range = Column(String(20), nullable=True)
+    type = Column(String(20), nullable=True)  # Ranged, Melee
+    attacks = Column(String(10), nullable=True)
+    bs_ws = Column(String(10), nullable=True)  # Ballistic Skill or Weapon Skill
+    strength = Column(String(10), nullable=True)
+    ap = Column(String(10), nullable=True)  # Armor Penetration
+    damage = Column(String(10), nullable=True)
+
+    # Relationship
+    datasheet = relationship("DatasheetModel", backref="wargear")

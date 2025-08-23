@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 20px; text-align: center;">🚀 Welcome to the Army List Parser</h2>
+    <p style="margin-bottom: 30px; text-align: center; font-size: 1.1rem; opacity: 0.9;">
+        Transform your Warhammer 40K army lists into Godot-compatible JSON format with complete unit statistics.
+    </p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 30px;">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">📝</div>
+            <h3 style="margin-bottom: 15px;">Paste Your List</h3>
+            <p style="margin-bottom: 20px; opacity: 0.8;">
+                Simply paste your army list text from Battlescribe, apps, or manual entry.
+            </p>
+            <a href="/parse" class="btn">Start Parsing →</a>
+        </div>
+        
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">⚡</div>
+            <h3 style="margin-bottom: 15px;">Instant Conversion</h3>
+            <p style="margin-bottom: 20px; opacity: 0.8;">
+                Get complete unit stats, keywords, and model data from our Wahapedia database.
+            </p>
+        </div>
+        
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🎮</div>
+            <h3 style="margin-bottom: 15px;">Godot Ready</h3>
+            <p style="margin-bottom: 20px; opacity: 0.8;">
+                Export JSON format perfect for Godot game engine integration.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 20px;">📊 Database Statistics</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center;">
+        <div>
+            <div style="font-size: 2rem; font-weight: bold; color: #ffd700;">1,625+</div>
+            <div style="opacity: 0.8;">Unit Datasheets</div>
+        </div>
+        <div>
+            <div style="font-size: 2rem; font-weight: bold; color: #ffd700;">11,000+</div>
+            <div style="opacity: 0.8;">Unit Keywords</div>
+        </div>
+        <div>
+            <div style="font-size: 2rem; font-weight: bold; color: #ffd700;">1,700+</div>
+            <div style="opacity: 0.8;">Model Statistics</div>
+        </div>
+        <div>
+            <div style="font-size: 2rem; font-weight: bold; color: #ffd700;">All</div>
+            <div style="opacity: 0.8;">WH40K Factions</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 20px;">🔧 API Access</h3>
+    <p style="margin-bottom: 15px;">For developers who prefer programmatic access:</p>
+    <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 8px; font-family: monospace; margin: 15px 0;">
+        <strong>POST</strong> /api/v1/parse/<br>
+        <strong>GET</strong> /api/v1/parse/example
+    </div>
+    <a href="/api/v1/docs" target="_blank" class="btn">View API Documentation</a>
+</div>
+{% endblock %}

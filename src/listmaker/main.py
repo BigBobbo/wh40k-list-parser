@@ -2,10 +2,11 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database.connection import init_db
-from .features.api.routers import army_parser, datasheets, factions, lists
+from .features.api.routers import army_parser, datasheets, factions, lists, web
 
 # Initialize settings
 settings = get_settings()
@@ -36,14 +37,8 @@ async def startup_event():
     init_db()
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": f"Welcome to {settings.app_name}",
-        "version": settings.version,
-        "docs": f"{settings.api_prefix}/docs",
-    }
+# Include web routes first (for root path)
+app.include_router(web.router)
 
 
 @app.get("/health")
@@ -52,7 +47,7 @@ async def health_check():
     return {"status": "healthy", "service": settings.app_name}
 
 
-# Include routers
+# Include API routers
 app.include_router(factions.router, prefix=settings.api_prefix)
 app.include_router(datasheets.router, prefix=settings.api_prefix)
 app.include_router(lists.router, prefix=settings.api_prefix)

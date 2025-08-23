@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 30px; text-align: center;">⚡ Army List Parser</h2>
+    
+    <form id="parseForm" style="margin-bottom: 30px;">
+        <div style="margin-bottom: 20px;">
+            <label for="army_text" style="display: block; margin-bottom: 10px; font-weight: bold;">
+                📝 Paste your army list here:
+            </label>
+            <textarea 
+                id="army_text" 
+                name="army_text" 
+                rows="15" 
+                placeholder="Example:
+
+Adeptus Custodes
+Strike Force (2000 points)
+Shield Host
+
+CHARACTERS
+
+Blade Champion (135 points)
+• Warlord
+• 1x Vaultswords
+• Enhancement: Auric Mantle
+
+BATTLELINE
+
+Custodian Guard (170 points)
+• 4x Custodian Guard
+• 2x Guardian spear
+• 1x Misericordia
+• 2x Praesidium Shield
+• 1x Sentinel blade
+• 1x Vexilla"
+                style="width: 100%; padding: 15px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.3); color: white; font-family: monospace; font-size: 14px; resize: vertical; min-height: 300px;"
+                required></textarea>
+        </div>
+        
+        <div style="text-align: center;">
+            <button type="submit" class="btn" style="font-size: 18px; padding: 15px 30px;">
+                🚀 Parse Army List
+            </button>
+        </div>
+    </form>
+    
+    <div id="loading" style="display: none; text-align: center; margin: 20px 0;">
+        <div style="font-size: 2rem; margin-bottom: 10px;">⚙️</div>
+        <p>Parsing your army list...</p>
+    </div>
+    
+    <div id="error" style="display: none; background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.5); border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="margin-bottom: 10px; color: #ff6b6b;">❌ Error</h3>
+        <p id="error-message"></p>
+    </div>
+    
+    <div id="results" style="display: none;">
+        <h3 style="margin-bottom: 20px;">📊 Parsed Results</h3>
+        
+        <div id="faction-info" style="background: rgba(255, 215, 0, 0.1); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            <h4 style="margin-bottom: 15px; color: #ffd700;">🏛️ Faction Information</h4>
+            <div id="faction-details"></div>
+        </div>
+        
+        <div id="units-info">
+            <h4 style="margin-bottom: 15px; color: #ffd700;">⚔️ Units</h4>
+            <div id="units-list"></div>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <button id="copyJson" class="btn" style="margin-right: 10px;">📋 Copy JSON</button>
+            <button id="downloadJson" class="btn">💾 Download JSON</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h4 style="margin-bottom: 15px;">🔧 JSON Output</h4>
+            <pre id="json-output" style="background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 8px; overflow-x: auto; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; white-space: pre-wrap; border: 1px solid rgba(255, 255, 255, 0.3);"></pre>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 20px;">💡 Tips for Best Results</h3>
+    <ul style="list-style-position: inside; line-height: 1.6;">
+        <li style="margin-bottom: 10px;">Include faction name at the top of your list</li>
+        <li style="margin-bottom: 10px;">Keep unit names as they appear in official sources</li>
+        <li style="margin-bottom: 10px;">Include point costs in parentheses: "Unit Name (120 points)"</li>
+        <li style="margin-bottom: 10px;">Use section headers like "CHARACTERS", "BATTLELINE", etc.</li>
+        <li style="margin-bottom: 10px;">Mark warlord with "• Warlord" and enhancements with "• Enhancement:"</li>
+    </ul>
+</div>
+
+<script>
+document.getElementById('parseForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const armyText = document.getElementById('army_text').value;
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const resultsDiv = document.getElementById('results');
+    
+    // Show loading, hide results and errors
+    loadingDiv.style.display = 'block';
+    errorDiv.style.display = 'none';
+    resultsDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/v1/parse/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                army_text: armyText
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Hide loading
+        loadingDiv.style.display = 'none';
+        
+        // Display faction info
+        const factionDetails = document.getElementById('faction-details');
+        factionDetails.innerHTML = `
+            <p><strong>Name:</strong> ${data.faction.name}</p>
+            <p><strong>Points:</strong> ${data.faction.points}</p>
+            <p><strong>Detachment:</strong> ${data.faction.detachment || 'N/A'}</p>
+        `;
+        
+        // Display units
+        const unitsList = document.getElementById('units-list');
+        const unitsHtml = Object.entries(data.units).map(([unitId, unit]) => `
+            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <h5 style="margin-bottom: 10px; color: #ffd700;">${unit.meta.name} (${unit.meta.points} pts)</h5>
+                <p><strong>Models:</strong> ${unit.models.length}</p>
+                <p><strong>Keywords:</strong> ${unit.meta.keywords.join(', ')}</p>
+                ${unit.meta.is_warlord ? '<p><strong>🏆 Warlord</strong></p>' : ''}
+                ${unit.meta.enhancements.length > 0 ? `<p><strong>Enhancements:</strong> ${unit.meta.enhancements.join(', ')}</p>` : ''}
+                ${unit.meta.wargear.length > 0 ? `<p><strong>Wargear:</strong> ${unit.meta.wargear.join(', ')}</p>` : ''}
+                <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                    <strong>Stats:</strong> 
+                    M${unit.meta.stats.move}" | T${unit.meta.stats.toughness} | Sv${unit.meta.stats.save}+ | W${unit.meta.stats.wounds} | Ld${unit.meta.stats.leadership}+ | OC${unit.meta.stats.objective_control}
+                </div>
+            </div>
+        `).join('');
+        unitsList.innerHTML = unitsHtml;
+        
+        // Display JSON
+        const jsonOutput = document.getElementById('json-output');
+        jsonOutput.textContent = JSON.stringify(data, null, 2);
+        
+        // Store data for copy/download
+        window.lastParseResult = data;
+        
+        // Show results
+        resultsDiv.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error:', error);
+        loadingDiv.style.display = 'none';
+        errorDiv.style.display = 'block';
+        document.getElementById('error-message').textContent = error.message;
+    }
+});
+
+// Copy JSON functionality
+document.getElementById('copyJson').addEventListener('click', function() {
+    const jsonText = JSON.stringify(window.lastParseResult, null, 2);
+    navigator.clipboard.writeText(jsonText).then(function() {
+        const btn = document.getElementById('copyJson');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => {
+            btn.textContent = originalText;
+        }, 2000);
+    });
+});
+
+// Download JSON functionality
+document.getElementById('downloadJson').addEventListener('click', function() {
+    const jsonText = JSON.stringify(window.lastParseResult, null, 2);
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `army_list_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+</script>
+{% endblock %}

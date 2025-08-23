@@ -136,20 +136,104 @@ document.getElementById('parseForm').addEventListener('submit', async function(e
         
         // Display units
         const unitsList = document.getElementById('units-list');
-        const unitsHtml = Object.entries(data.units).map(([unitId, unit]) => `
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                <h5 style="margin-bottom: 10px; color: #ffd700;">${unit.meta.name} (${unit.meta.points} pts)</h5>
-                <p><strong>Models:</strong> ${unit.models.length}</p>
-                <p><strong>Keywords:</strong> ${unit.meta.keywords.join(', ')}</p>
-                ${unit.meta.is_warlord ? '<p><strong>🏆 Warlord</strong></p>' : ''}
-                ${unit.meta.enhancements.length > 0 ? `<p><strong>Enhancements:</strong> ${unit.meta.enhancements.join(', ')}</p>` : ''}
-                ${unit.meta.wargear.length > 0 ? `<p><strong>Wargear:</strong> ${unit.meta.wargear.join(', ')}</p>` : ''}
-                <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                    <strong>Stats:</strong> 
-                    M${unit.meta.stats.move}" | T${unit.meta.stats.toughness} | Sv${unit.meta.stats.save}+ | W${unit.meta.stats.wounds} | Ld${unit.meta.stats.leadership}+ | OC${unit.meta.stats.objective_control}
+        const unitsHtml = Object.entries(data.units).map(([unitId, unit]) => {
+            // Format weapons into tables
+            const rangedWeapons = unit.meta.weapons ? unit.meta.weapons.filter(w => w.type === 'Ranged') : [];
+            const meleeWeapons = unit.meta.weapons ? unit.meta.weapons.filter(w => w.type === 'Melee') : [];
+            
+            const rangedWeaponsHtml = rangedWeapons.length > 0 ? `
+                <div style="margin-top: 15px;">
+                    <strong style="color: #87CEEB;">📫 Ranged Weapons:</strong>
+                    <table style="width: 100%; margin-top: 8px; font-size: 0.85em; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <th style="text-align: left; padding: 4px;">Weapon</th>
+                                <th style="text-align: center; padding: 4px;">Range</th>
+                                <th style="text-align: center; padding: 4px;">A</th>
+                                <th style="text-align: center; padding: 4px;">BS</th>
+                                <th style="text-align: center; padding: 4px;">S</th>
+                                <th style="text-align: center; padding: 4px;">AP</th>
+                                <th style="text-align: center; padding: 4px;">D</th>
+                                <th style="text-align: left; padding: 4px;">Abilities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rangedWeapons.map(w => `
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                    <td style="padding: 4px;">${w.name}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.range}"</td>
+                                    <td style="text-align: center; padding: 4px;">${w.attacks || '-'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.ballistic_skill || '-'}+</td>
+                                    <td style="text-align: center; padding: 4px;">${w.strength || '-'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.ap || '0'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.damage || '-'}</td>
+                                    <td style="padding: 4px; font-size: 0.8em; opacity: 0.8;">${w.special_rules || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        `).join('');
+            ` : '';
+            
+            const meleeWeaponsHtml = meleeWeapons.length > 0 ? `
+                <div style="margin-top: 15px;">
+                    <strong style="color: #FFB6C1;">⚔️ Melee Weapons:</strong>
+                    <table style="width: 100%; margin-top: 8px; font-size: 0.85em; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                                <th style="text-align: left; padding: 4px;">Weapon</th>
+                                <th style="text-align: center; padding: 4px;">Range</th>
+                                <th style="text-align: center; padding: 4px;">A</th>
+                                <th style="text-align: center; padding: 4px;">WS</th>
+                                <th style="text-align: center; padding: 4px;">S</th>
+                                <th style="text-align: center; padding: 4px;">AP</th>
+                                <th style="text-align: center; padding: 4px;">D</th>
+                                <th style="text-align: left; padding: 4px;">Abilities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${meleeWeapons.map(w => `
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                    <td style="padding: 4px;">${w.name}</td>
+                                    <td style="text-align: center; padding: 4px;">Melee</td>
+                                    <td style="text-align: center; padding: 4px;">${w.attacks || '-'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.weapon_skill || '-'}+</td>
+                                    <td style="text-align: center; padding: 4px;">${w.strength || '-'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.ap || '0'}</td>
+                                    <td style="text-align: center; padding: 4px;">${w.damage || '-'}</td>
+                                    <td style="padding: 4px; font-size: 0.8em; opacity: 0.8;">${w.special_rules || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '';
+            
+            return `
+                <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h5 style="margin-bottom: 10px; color: #ffd700;">${unit.meta.name} (${unit.meta.points} pts)</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <p><strong>Models:</strong> ${unit.models.length}</p>
+                            ${unit.meta.is_warlord ? '<p><strong>🏆 Warlord</strong></p>' : ''}
+                        </div>
+                        <div>
+                            <p><strong>Keywords:</strong> <span style="font-size: 0.85em;">${unit.meta.keywords.join(', ')}</span></p>
+                            ${unit.meta.enhancements.length > 0 ? `<p><strong>Enhancements:</strong> ${unit.meta.enhancements.join(', ')}</p>` : ''}
+                        </div>
+                    </div>
+                    ${unit.meta.wargear.length > 0 ? `<p><strong>Selected Wargear:</strong> ${unit.meta.wargear.join(', ')}</p>` : ''}
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
+                        <strong>Unit Stats:</strong> 
+                        <span style="font-family: monospace;">
+                            M${unit.meta.stats.move}" | T${unit.meta.stats.toughness} | Sv${unit.meta.stats.save}+ | W${unit.meta.stats.wounds} | Ld${unit.meta.stats.leadership}+ | OC${unit.meta.stats.objective_control}
+                        </span>
+                    </div>
+                    ${rangedWeaponsHtml}
+                    ${meleeWeaponsHtml}
+                </div>
+            `;
+        }).join('');
         unitsList.innerHTML = unitsHtml;
         
         // Display JSON

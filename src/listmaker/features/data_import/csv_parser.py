@@ -64,7 +64,7 @@ class WahapediaCSVParser:
 
     def parse_abilities(self) -> pd.DataFrame:
         """Parse abilities CSV data."""
-        df = self._read_csv("Datasheets_abilities.csv")
+        df = self._read_csv("Abilities.csv")
         df.columns = df.columns.str.strip()
         return df
 
@@ -98,6 +98,42 @@ class WahapediaCSVParser:
         df.columns = df.columns.str.strip()
         return df
 
+    def parse_datasheet_abilities(self) -> pd.DataFrame:
+        """Parse datasheet abilities CSV data."""
+        df = self._read_csv("Datasheets_abilities.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
+    def parse_datasheet_options(self) -> pd.DataFrame:
+        """Parse datasheet options CSV data."""
+        df = self._read_csv("Datasheets_options.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
+    def parse_datasheet_leaders(self) -> pd.DataFrame:
+        """Parse datasheet leader relationships CSV data."""
+        df = self._read_csv("Datasheets_leader.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
+    def parse_datasheet_enhancements(self) -> pd.DataFrame:
+        """Parse datasheet enhancements CSV data."""
+        df = self._read_csv("Datasheets_enhancements.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
+    def parse_datasheet_stratagems(self) -> pd.DataFrame:
+        """Parse datasheet stratagems CSV data."""
+        df = self._read_csv("Datasheets_stratagems.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
+    def parse_datasheet_detachment_abilities(self) -> pd.DataFrame:
+        """Parse datasheet detachment abilities CSV data."""
+        df = self._read_csv("Datasheets_detachment_abilities.csv")
+        df.columns = df.columns.str.strip()
+        return df
+
     def parse_all(self) -> Dict[str, pd.DataFrame]:
         """Parse all CSV files and return as dictionary."""
         return {
@@ -107,9 +143,6 @@ class WahapediaCSVParser:
             "unit_composition": self.parse_unit_composition(),
             "model_costs": self.parse_model_costs(),
             "model_stats": self.parse_model_stats(),
-            "abilities": self.parse_abilities(),
+            "datasheet_abilities": self.parse_datasheet_abilities(),
             "wargear": self.parse_wargear(),
-            "detachment_abilities": self.parse_detachment_abilities(),
-            "enhancements": self.parse_enhancements(),
-            "stratagems": self.parse_stratagems(),
         }

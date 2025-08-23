@@ -6,12 +6,22 @@ import pandas as pd
 from sqlalchemy.orm import Session
 
 from ...database.models import (
+    AbilityModel,
+    DatasheetAbilityModel,
+    DatasheetDetachmentAbilityModel,
+    DatasheetEnhancementModel,
     DatasheetKeywordModel,
+    DatasheetLeaderModel,
     DatasheetModel,
     DatasheetModelStatsModel,
+    DatasheetOptionModel,
+    DatasheetStratagemModel,
     DatasheetWargearModel,
+    DetachmentAbilityModel,
+    EnhancementModel,
     FactionModel,
     ModelCostModel,
+    StratagemModel,
     UnitCompositionModel,
 )
 
@@ -162,6 +172,151 @@ class DataMapper:
             wargear_items.append(wargear)
         return wargear_items
 
+    def map_abilities(self, df: pd.DataFrame) -> List[AbilityModel]:
+        """Map abilities dataframe to database models."""
+        abilities = []
+        for _, row in df.iterrows():
+            ability = AbilityModel(
+                ability_id=str(row["id"]),
+                name=str(row["name"]),
+                legend=str(row["legend"]) if pd.notna(row["legend"]) else None,
+                faction_id=str(row["faction_id"]) if pd.notna(row["faction_id"]) else None,
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+            )
+            abilities.append(ability)
+        return abilities
+
+    def map_datasheet_abilities(self, df: pd.DataFrame) -> List[DatasheetAbilityModel]:
+        """Map datasheet abilities dataframe to database models."""
+        abilities = []
+        for _, row in df.iterrows():
+            # Pad datasheet_id to match format
+            datasheet_id = str(row["datasheet_id"]).zfill(9)
+            ability = DatasheetAbilityModel(
+                datasheet_id=datasheet_id,
+                line=int(row["line"]),
+                ability_id=str(row["ability_id"]) if pd.notna(row["ability_id"]) else None,
+                model=str(row["model"]) if pd.notna(row["model"]) else None,
+                name=str(row["name"]) if pd.notna(row["name"]) else None,
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+                type=str(row["type"]) if pd.notna(row["type"]) else None,
+                parameter=str(row["parameter"]) if pd.notna(row["parameter"]) else None,
+            )
+            abilities.append(ability)
+        return abilities
+
+    def map_datasheet_options(self, df: pd.DataFrame) -> List[DatasheetOptionModel]:
+        """Map datasheet options dataframe to database models."""
+        options = []
+        for _, row in df.iterrows():
+            datasheet_id = str(row["datasheet_id"]).zfill(9)
+            option = DatasheetOptionModel(
+                datasheet_id=datasheet_id,
+                line=int(row["line"]),
+                button=str(row["button"]) if pd.notna(row["button"]) else None,
+                description=str(row["description"]),
+            )
+            options.append(option)
+        return options
+
+    def map_datasheet_leaders(self, df: pd.DataFrame) -> List[DatasheetLeaderModel]:
+        """Map datasheet leaders dataframe to database models."""
+        leaders = []
+        for _, row in df.iterrows():
+            leader = DatasheetLeaderModel(
+                leader_id=str(row["leader_id"]).zfill(9),
+                attached_id=str(row["attached_id"]).zfill(9),
+            )
+            leaders.append(leader)
+        return leaders
+
+    def map_enhancements(self, df: pd.DataFrame) -> List[EnhancementModel]:
+        """Map enhancements dataframe to database models."""
+        enhancements = []
+        for _, row in df.iterrows():
+            enhancement = EnhancementModel(
+                enhancement_id=str(row["id"]),
+                name=str(row["name"]),
+                legend=str(row["legend"]) if pd.notna(row["legend"]) else None,
+                faction_id=str(row["faction_id"]),
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+                cost=int(row["cost"]) if pd.notna(row["cost"]) and str(row["cost"]).isdigit() else None,
+            )
+            enhancements.append(enhancement)
+        return enhancements
+
+    def map_datasheet_enhancements(self, df: pd.DataFrame) -> List[DatasheetEnhancementModel]:
+        """Map datasheet enhancements dataframe to database models."""
+        enhancements = []
+        for i, row in df.iterrows():
+            datasheet_id = str(row["datasheet_id"]).zfill(9)
+            enhancement = DatasheetEnhancementModel(
+                datasheet_id=datasheet_id,
+                line=i + 1,  # Use row index as line number since no line column exists
+                enhancement_id=str(row["enhancement_id"]),
+            )
+            enhancements.append(enhancement)
+        return enhancements
+
+    def map_stratagems(self, df: pd.DataFrame) -> List[StratagemModel]:
+        """Map stratagems dataframe to database models."""
+        stratagems = []
+        for _, row in df.iterrows():
+            stratagem = StratagemModel(
+                stratagem_id=str(row["id"]),
+                name=str(row["name"]),
+                legend=str(row["legend"]) if pd.notna(row["legend"]) else None,
+                faction_id=str(row["faction_id"]),
+                cp_cost=int(row["cp_cost"]) if pd.notna(row["cp_cost"]) and str(row["cp_cost"]).isdigit() else None,
+                type=str(row["type"]) if pd.notna(row["type"]) else None,
+                turn=str(row["turn"]) if pd.notna(row["turn"]) else None,
+                phase=str(row["phase"]) if pd.notna(row["phase"]) else None,
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+            )
+            stratagems.append(stratagem)
+        return stratagems
+
+    def map_datasheet_stratagems(self, df: pd.DataFrame) -> List[DatasheetStratagemModel]:
+        """Map datasheet stratagems dataframe to database models."""
+        stratagems = []
+        for i, row in df.iterrows():
+            datasheet_id = str(row["datasheet_id"]).zfill(9)
+            stratagem = DatasheetStratagemModel(
+                datasheet_id=datasheet_id,
+                line=i + 1,  # Use row index as line number
+                stratagem_id=str(row["stratagem_id"]),
+            )
+            stratagems.append(stratagem)
+        return stratagems
+
+    def map_detachment_abilities(self, df: pd.DataFrame) -> List[DetachmentAbilityModel]:
+        """Map detachment abilities dataframe to database models."""
+        abilities = []
+        for _, row in df.iterrows():
+            ability = DetachmentAbilityModel(
+                detachment_ability_id=str(row["id"]),
+                name=str(row["name"]),
+                legend=str(row["legend"]) if pd.notna(row["legend"]) else None,
+                faction_id=str(row["faction_id"]),
+                detachment=str(row["detachment"]) if pd.notna(row["detachment"]) else None,
+                description=str(row["description"]) if pd.notna(row["description"]) else None,
+            )
+            abilities.append(ability)
+        return abilities
+
+    def map_datasheet_detachment_abilities(self, df: pd.DataFrame) -> List[DatasheetDetachmentAbilityModel]:
+        """Map datasheet detachment abilities datasheet to database models."""
+        abilities = []
+        for i, row in df.iterrows():
+            datasheet_id = str(row["datasheet_id"]).zfill(9)
+            ability = DatasheetDetachmentAbilityModel(
+                datasheet_id=datasheet_id,
+                line=i + 1,  # Use row index as line number
+                detachment_ability_id=str(row["detachment_ability_id"]),
+            )
+            abilities.append(ability)
+        return abilities
+
     def save_all(self, data: Dict[str, pd.DataFrame]) -> Dict[str, int]:
         """Save all parsed data to database."""
         counts = {}
@@ -216,6 +371,16 @@ class DataMapper:
             for wargear in wargear_items:
                 self.session.merge(wargear)
             counts["wargear"] = len(wargear_items)
+
+        # Save datasheet abilities (using existing CSV parsing)
+        if "datasheet_abilities" in data:
+            ds_abilities = self.map_datasheet_abilities(data["datasheet_abilities"])
+            for ability in ds_abilities:
+                self.session.merge(ability)
+            counts["datasheet_abilities"] = len(ds_abilities)
+
+        # For now, focus on the core data that's working
+        # Additional data types will be added in future iterations
 
         # Commit all changes
         self.session.commit()

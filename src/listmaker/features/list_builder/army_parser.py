@@ -6,10 +6,12 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from ...database.models import (
+    DatasheetAbilityModel,
     DatasheetKeywordModel,
     DatasheetModel,
     DatasheetModelStatsModel,
     DatasheetWargearModel,
+    UnitCompositionModel,
 )
 
 
@@ -143,6 +145,14 @@ class ArmyListParser:
         wargear = self._get_wargear(padded_datasheet_id)
         weapons = [self._format_weapon(w) for w in wargear]
         
+        # Get unit abilities
+        abilities = self._get_unit_abilities(datasheet.datasheet_id)
+        formatted_abilities = [self._format_ability(a) for a in abilities]
+        
+        # Get unit composition
+        composition = self._get_unit_composition(datasheet.datasheet_id)
+        unit_composition = [{"description": c.description, "line": c.line} for c in composition]
+        
         # Parse model count from the unit composition
         model_count = self._parse_model_count(unit_data)
         
@@ -191,7 +201,9 @@ class ArmyListParser:
                 "is_warlord": unit_data['is_warlord'],
                 "enhancements": unit_data['enhancements'],
                 "wargear": unit_data['wargear'],
-                "weapons": weapons
+                "weapons": weapons,
+                "abilities": formatted_abilities,
+                "unit_composition": unit_composition
             },
             "models": models
         }
@@ -290,6 +302,44 @@ class ArmyListParser:
             weapon_data["special_rules"] = description
             
         return weapon_data
+    
+    def _get_unit_abilities(self, datasheet_id: str) -> List[DatasheetAbilityModel]:
+        """Get abilities for a datasheet."""
+        padded_datasheet_id = datasheet_id.zfill(9)
+        return (
+            self.session.query(DatasheetAbilityModel)
+            .filter(DatasheetAbilityModel.datasheet_id == padded_datasheet_id)
+            .order_by(DatasheetAbilityModel.line)
+            .all()
+        )
+    
+    def _get_unit_composition(self, datasheet_id: str) -> List[UnitCompositionModel]:
+        """Get unit composition for a datasheet."""
+        return (
+            self.session.query(UnitCompositionModel)
+            .filter(UnitCompositionModel.datasheet_id == datasheet_id)
+            .order_by(UnitCompositionModel.line)
+            .all()
+        )
+    
+    def _format_ability(self, ability: DatasheetAbilityModel) -> Dict:
+        """Format ability data for output."""
+        # Clean up HTML tags from description
+        description = ability.description or ""
+        description = re.sub(r'<[^>]+>', '', description)
+        
+        ability_data = {
+            "name": ability.name or "Core",
+            "type": ability.type or "Passive",
+            "description": description,
+        }
+        
+        if ability.model:
+            ability_data["model"] = ability.model
+        if ability.parameter:
+            ability_data["parameter"] = ability.parameter
+            
+        return ability_data
     
     def _parse_model_count(self, unit_data: Dict) -> int:
         """Parse model count from unit data."""

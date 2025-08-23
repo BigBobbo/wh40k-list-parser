@@ -216,3 +216,157 @@ class DatasheetWargearModel(Base):
 
     # Relationship
     datasheet = relationship("DatasheetModel", backref="wargear")
+
+
+class AbilityModel(Base):
+    """Database model for abilities."""
+
+    __tablename__ = "abilities"
+
+    ability_id = Column(String(20), primary_key=True)
+    name = Column(String(200), nullable=False)
+    legend = Column(String(500), nullable=True)
+    faction_id = Column(String(10), ForeignKey("factions.faction_id"), nullable=True)
+    description = Column(Text, nullable=True)
+
+    # Relationships
+    faction = relationship("FactionModel", backref="abilities")
+
+
+class DatasheetAbilityModel(Base):
+    """Database model for datasheet abilities."""
+
+    __tablename__ = "datasheet_abilities"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    ability_id = Column(String(20), ForeignKey("abilities.ability_id"), nullable=True)
+    model = Column(String(200), nullable=True)
+    name = Column(String(200), nullable=True)
+    description = Column(Text, nullable=True)
+    type = Column(String(50), nullable=True)
+    parameter = Column(String(100), nullable=True)
+
+    # Relationships
+    datasheet = relationship("DatasheetModel", backref="abilities")
+    ability = relationship("AbilityModel", backref="datasheet_abilities")
+
+
+class DatasheetOptionModel(Base):
+    """Database model for datasheet wargear options."""
+
+    __tablename__ = "datasheet_options"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    button = Column(String(10), nullable=True)
+    description = Column(Text, nullable=False)
+
+    # Relationship
+    datasheet = relationship("DatasheetModel", backref="options")
+
+
+class DatasheetLeaderModel(Base):
+    """Database model for datasheet leader relationships."""
+
+    __tablename__ = "datasheet_leaders"
+
+    leader_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    attached_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+
+    # Relationships
+    leader = relationship("DatasheetModel", foreign_keys=[leader_id], backref="can_lead")
+    attached = relationship("DatasheetModel", foreign_keys=[attached_id], backref="can_be_led_by")
+
+
+class EnhancementModel(Base):
+    """Database model for enhancements."""
+
+    __tablename__ = "enhancements"
+
+    enhancement_id = Column(String(20), primary_key=True)
+    name = Column(String(200), nullable=False)
+    legend = Column(String(500), nullable=True)
+    faction_id = Column(String(10), ForeignKey("factions.faction_id"), nullable=False)
+    description = Column(Text, nullable=True)
+    cost = Column(Integer, nullable=True)
+
+    # Relationships
+    faction = relationship("FactionModel", backref="enhancements")
+
+
+class DatasheetEnhancementModel(Base):
+    """Database model for datasheet enhancement relationships."""
+
+    __tablename__ = "datasheet_enhancements"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    enhancement_id = Column(String(20), ForeignKey("enhancements.enhancement_id"), nullable=False)
+
+    # Relationships
+    datasheet = relationship("DatasheetModel", backref="available_enhancements")
+    enhancement = relationship("EnhancementModel", backref="available_for_datasheets")
+
+
+class StratagemModel(Base):
+    """Database model for stratagems."""
+
+    __tablename__ = "stratagems"
+
+    stratagem_id = Column(String(20), primary_key=True)
+    name = Column(String(200), nullable=False)
+    legend = Column(String(500), nullable=True)
+    faction_id = Column(String(10), ForeignKey("factions.faction_id"), nullable=False)
+    cp_cost = Column(Integer, nullable=True)
+    type = Column(String(50), nullable=True)
+    turn = Column(String(50), nullable=True)
+    phase = Column(String(50), nullable=True)
+    description = Column(Text, nullable=True)
+
+    # Relationships
+    faction = relationship("FactionModel", backref="stratagems")
+
+
+class DatasheetStratagemModel(Base):
+    """Database model for datasheet stratagem relationships."""
+
+    __tablename__ = "datasheet_stratagems"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    stratagem_id = Column(String(20), ForeignKey("stratagems.stratagem_id"), nullable=False)
+
+    # Relationships
+    datasheet = relationship("DatasheetModel", backref="available_stratagems")
+    stratagem = relationship("StratagemModel", backref="available_for_datasheets")
+
+
+class DetachmentAbilityModel(Base):
+    """Database model for detachment abilities."""
+
+    __tablename__ = "detachment_abilities"
+
+    detachment_ability_id = Column(String(20), primary_key=True)
+    name = Column(String(200), nullable=False)
+    legend = Column(String(500), nullable=True)
+    faction_id = Column(String(10), ForeignKey("factions.faction_id"), nullable=False)
+    detachment = Column(String(200), nullable=True)
+    description = Column(Text, nullable=True)
+
+    # Relationships
+    faction = relationship("FactionModel", backref="detachment_abilities")
+
+
+class DatasheetDetachmentAbilityModel(Base):
+    """Database model for datasheet detachment ability relationships."""
+
+    __tablename__ = "datasheet_detachment_abilities"
+
+    datasheet_id = Column(String(20), ForeignKey("datasheets.datasheet_id"), primary_key=True)
+    line = Column(Integer, primary_key=True)
+    detachment_ability_id = Column(String(20), ForeignKey("detachment_abilities.detachment_ability_id"), nullable=False)
+
+    # Relationships
+    datasheet = relationship("DatasheetModel", backref="available_detachment_abilities")
+    detachment_ability = relationship("DetachmentAbilityModel", backref="available_for_datasheets")

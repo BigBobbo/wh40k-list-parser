@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from ...database.models import (
+    AbilityModel,
     DatasheetAbilityModel,
     DatasheetKeywordModel,
     DatasheetModel,
@@ -304,7 +305,7 @@ class ArmyListParser:
         return weapon_data
     
     def _get_unit_abilities(self, datasheet_id: str) -> List[DatasheetAbilityModel]:
-        """Get abilities for a datasheet."""
+        """Get abilities for a datasheet with proper ability lookups."""
         padded_datasheet_id = datasheet_id.zfill(9)
         return (
             self.session.query(DatasheetAbilityModel)
@@ -324,14 +325,29 @@ class ArmyListParser:
     
     def _format_ability(self, ability: DatasheetAbilityModel) -> Dict:
         """Format ability data for output."""
+        ability_name = ability.name or "Core"
+        ability_description = ability.description or ""
+        
+        # If ability_id is present, lookup from Abilities table
+        if ability.ability_id:
+            # Convert float to padded string format (8343.0 -> "000008343")
+            ability_id_str = str(int(float(ability.ability_id))).zfill(9)
+            linked_ability = (
+                self.session.query(AbilityModel)
+                .filter(AbilityModel.ability_id == ability_id_str)
+                .first()
+            )
+            if linked_ability:
+                ability_name = linked_ability.name
+                ability_description = linked_ability.description or ""
+        
         # Clean up HTML tags from description
-        description = ability.description or ""
-        description = re.sub(r'<[^>]+>', '', description)
+        ability_description = re.sub(r'<[^>]+>', '', ability_description)
         
         ability_data = {
-            "name": ability.name or "Core",
+            "name": ability_name,
             "type": ability.type or "Passive",
-            "description": description,
+            "description": ability_description,
         }
         
         if ability.model:

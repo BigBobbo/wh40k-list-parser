@@ -46,24 +46,63 @@ class ArmyListParser:
     
     def _extract_faction_info(self, lines: List[str]) -> Dict:
         """Extract faction and army info from first few lines."""
-        faction = lines[0].strip() if lines else "Unknown"
+        faction = "Unknown"
         points = 0
         detachment = ""
+        player_name = ""
+        team_name = ""
         
-        for line in lines[:5]:
-            # Look for points info
-            points_match = re.search(r'\((\d+) points\)', line)
-            if points_match:
-                points = int(points_match.group(1))
-                
-            # Look for detachment info
-            if any(keyword in line.lower() for keyword in ['strike force', 'patrol', 'battalion']):
-                detachment = line.strip()
-                
+        # Look through header lines for specific info
+        for line in lines[:20]:  # Check more lines for WTC format
+            line_lower = line.lower()
+            
+            # Extract player name
+            if 'player name:' in line_lower:
+                player_name = line.split(':', 1)[1].strip()
+            
+            # Extract team name
+            elif 'team name:' in line_lower:
+                team_name = line.split(':', 1)[1].strip()
+            
+            # Extract faction (multiple formats)
+            elif 'faction' in line_lower and ':' in line:
+                # Handle "FACTION KEYWORD:", "FACTIONS USED:", "FACTION:", etc.
+                faction = line.split(':', 1)[1].strip()
+            
+            # Extract army points (multiple formats)
+            elif 'army points:' in line_lower or 'total army points:' in line_lower:
+                points_str = line.split(':', 1)[1].strip()
+                points_match = re.search(r'(\d+)', points_str)
+                if points_match:
+                    points = int(points_match.group(1))
+            
+            # Look for points in parentheses (older format)
+            elif not points:
+                points_match = re.search(r'\((\d+)\s*[Pp]oints\)', line)
+                if points_match:
+                    points = int(points_match.group(1))
+            
+            # Extract detachment rule
+            elif 'detachment rule:' in line_lower:
+                detachment = line.split(':', 1)[1].strip()
+            
+            # Look for detachment types
+            elif any(keyword in line_lower for keyword in ['strike force', 'patrol', 'battalion', 'brigade', 'vanguard', 'spearhead', 'outrider']):
+                if 'points' not in line_lower:  # Avoid matching the list name
+                    detachment = line.strip()
+        
+        # Clean up faction name (handle complex faction names)
+        if ' - ' in faction:
+            # Handle "Imperium - Adeptus Astartes - Space wolves" or "Xenos - Tyranids" format
+            parts = faction.split(' - ')
+            faction = parts[-1]  # Take the last part as the main faction
+        
         return {
             "name": faction,
             "points": points,
-            "detachment": detachment
+            "detachment": detachment,
+            "player_name": player_name,
+            "team_name": team_name
         }
     
     def _parse_units(self, lines: List[str]) -> List[Dict]:
@@ -71,19 +110,47 @@ class ArmyListParser:
         units = []
         current_unit = None
         current_section = None
+        skip_header = True
         
         for line in lines:
             line = line.strip()
             if not line:
                 continue
+            
+            # Skip header lines (WTC format has detailed header)
+            if skip_header:
+                # Look for the actual list start (usually after the divider lines)
+                if '=' in line and len(line) > 20:
+                    continue
+                # Skip metadata lines
+                if any(marker in line.lower() for marker in ['player name:', 'team name:', 'factions used:', 'army points:', 'army enhancements', 'detachment rule:']):
+                    continue
+                # The actual list usually starts with a name in parentheses or a section header
+                # Also check for "Char1:", "Char2:" format or units with "pts" 
+                if ('(' in line and ('points' in line.lower() or 'pts' in line.lower()) and not line.startswith('•')):
+                    skip_header = False
+                elif line.startswith('Char') and ':' in line:
+                    skip_header = False
+                elif line.upper() in ['CHARACTERS', 'BATTLELINE', 'OTHER DATASHEETS', 'ALLIED UNITS', 'DEDICATED TRANSPORTS']:
+                    skip_header = False
+                    current_section = line.upper()
+                    continue
+                else:
+                    continue
                 
             # Check if this is a section header
-            if line.upper() in ['CHARACTERS', 'BATTLELINE', 'OTHER DATASHEETS', 'ALLIED UNITS']:
+            if line.upper() in ['CHARACTERS', 'BATTLELINE', 'OTHER DATASHEETS', 'ALLIED UNITS', 'DEDICATED TRANSPORTS']:
                 current_section = line.upper()
+                continue
+            
+            # Skip list names (they have points but are usually longer descriptions)
+            if '(' in line and 'points' in line.lower() and len(line) > 50 and not line.startswith('Char'):
+                # This is likely the list name, skip it
                 continue
                 
             # Check if this is a unit entry (has points at the end)
-            points_match = re.search(r'^(.+?)\s*\((\d+) points\)$', line)
+            # Handle both "Unit Name (100 points)" and "Char 1: Unit Name (100 pts)"
+            points_match = re.search(r'^(?:Char\d+:\s*)?(?:\d+x\s+)?(.+?)\s*\((\d+)\s+(?:[Pp]oints?|pts)\)$', line)
             if points_match:
                 # Save previous unit if exists
                 if current_unit:
@@ -106,19 +173,46 @@ class ArmyListParser:
                 
             # Check for special markers
             if current_unit:
-                if '• Warlord' in line:
+                # Check for Warlord marker (can be with or without bullet)
+                if 'warlord' in line.lower():
                     current_unit['is_warlord'] = True
-                elif '• Enhancement:' in line:
-                    enhancement = line.replace('• Enhancement:', '').strip()
-                    current_unit['enhancements'].append(enhancement)
-                elif line.startswith('• '):
-                    # This is wargear or model info
-                    wargear_item = line.replace('• ', '').strip()
-                    if 'x ' in wargear_item:
-                        # This looks like model count info
-                        current_unit['models'].append(wargear_item)
+                    # Don't add warlord as wargear
+                    if not line.startswith('•'):
+                        continue
+                
+                # Check for enhancements (multiple formats)
+                elif 'enhancement:' in line.lower() or 'enhancements:' in line.lower():
+                    # Extract enhancement name
+                    if ':' in line:
+                        enhancement = line.split(':', 1)[1].strip()
+                        current_unit['enhancements'].append(enhancement)
+                
+                # Handle nested bullet points (◦ for sub-items)
+                elif line.startswith('◦'):
+                    # Sub-item, usually specific wargear on models
+                    wargear_item = line.replace('◦', '').strip()
+                    current_unit['wargear'].append(wargear_item)
+                
+                elif line.startswith('•'):
+                    # Main bullet point - could be model or wargear
+                    item = line.replace('•', '').strip()
+                    
+                    # Skip warlord marker
+                    if 'warlord' in item.lower():
+                        continue
+                    
+                    # Check if this is a model count (e.g., "4x Corsair Voidreaver")
+                    if re.match(r'\d+x\s+', item):
+                        current_unit['models'].append(item)
                     else:
-                        current_unit['wargear'].append(wargear_item)
+                        # Otherwise treat as wargear
+                        current_unit['wargear'].append(item)
+                
+                # Handle items without bullets (some formats use plain indentation)
+                elif line and not line.startswith('=') and not line.upper() in ['CHARACTERS', 'BATTLELINE', 'OTHER DATASHEETS', 'ALLIED UNITS', 'DEDICATED TRANSPORTS']:
+                    # Check if this line looks like wargear (starts with a number and 'x')
+                    if re.match(r'^\d+x\s+', line):
+                        current_unit['wargear'].append(line)
         
         # Don't forget the last unit
         if current_unit:
